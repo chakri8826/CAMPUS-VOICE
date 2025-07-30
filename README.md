@@ -32,9 +32,20 @@ Campus Voice is a full-stack MERN (MongoDB, Express, React, Node.js) application
 
 ## 📸 Screenshots
 
-_Add screenshots of your student dashboard, admin panel, complaint form, etc._
+### Student Dashboard
+![Student Dashboard](https://github.com/chakri8826/CAMPUS-VOICE/blob/ac2ab51845ff61cb9cd3cfeb1d8954c521d9a326/Student%20Dashboard.png)
+
+### Student Complaint
+![Student Complaint](https://github.com/chakri8826/CAMPUS-VOICE/blob/ac2ab51845ff61cb9cd3cfeb1d8954c521d9a326/Submit%20Complaint.png)
+
+### Admin Dashboard
+![Admin Dashboard](https://github.com/chakri8826/CAMPUS-VOICE/blob/ac2ab51845ff61cb9cd3cfeb1d8954c521d9a326/Admin%20Dashboard.png)
+
+### Admin Panel
+![Admin Panel](https://github.com/chakri8826/CAMPUS-VOICE/blob/ac2ab51845ff61cb9cd3cfeb1d8954c521d9a326/Admin%20Panel.png)
 
 ---
+
 
 ## 🚀 Getting Started
 
