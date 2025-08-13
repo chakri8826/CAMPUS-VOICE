@@ -60,5 +60,13 @@ Campus Voice is a full-stack MERN (MongoDB, Express, React, Node.js) application
   MONGO_URI=your_mongodb_connection_string
   JWT_SECRET=your_jwt_secret
   PORT=5000
+  NODE_ENV=production
+  JWT_EXPIRE=30d
+  MAX_FILE_SIZE=maxSize
+  UPLOAD_PATH=directory
+  CLOUDINARY_CLOUD_NAME: *******
+  CLOUDINARY_API_KEY: *********
+  CLOUDINARY_API_SECRET: *********
+
 
 
