@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/api.js';
 import { useSelector } from 'react-redux';
 import Navbar from '../components/Navbar';
 import Modal from '../components/Modal';
@@ -42,7 +43,7 @@ export default function MyComplaintsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/complaints/user/me', {
+        const res = await apiFetch('/api/complaints/user/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const text = await res.text();
@@ -81,7 +82,7 @@ export default function MyComplaintsPage() {
       formData.append('priority', form.priority);
       if (form.attachments) formData.append('attachments', form.attachments);
       
-      const res = await fetch('/api/complaints', {
+      const res = await apiFetch('/api/complaints', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`

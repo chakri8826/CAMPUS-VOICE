@@ -5,6 +5,7 @@ import Toast from '../components/Toast';
 import ComplaintCard from '../components/ComplaintCard';
 
 import Navbar from '../components/Navbar';
+import { apiFetch } from '../utils/api.js';
 
 const categories = [
   'Infrastructure', 'Academic', 'Hostel', 'Transportation', 'Food', 'Security', 'Technology', 'Sports', 'Library', 'Other'
@@ -57,7 +58,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const res = await fetch('/api/complaints?limit=5');
+        const res = await apiFetch('/api/complaints?limit=5');
         console.log(res);
         const text = await res.text();
         let data;
@@ -71,7 +72,7 @@ const Dashboard = () => {
         // Fetch vote counts for each complaint
         (data.data || []).forEach(async (complaint) => {
           try {
-            const res = await fetch(`/api/votes/complaint/${complaint._id}`);
+            const res = await apiFetch(`/api/votes/complaint/${complaint._id}`);
             const result = await res.json();
             if (result.success) {
               setVoteCounts(prev => ({ 
@@ -113,7 +114,7 @@ const Dashboard = () => {
       formData.append('category', form.category);
       formData.append('priority', form.priority);
       if (form.attachments) formData.append('attachments', form.attachments);
-      const res = await fetch('/api/complaints', {
+      const res = await apiFetch('/api/complaints', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -155,7 +156,7 @@ const Dashboard = () => {
       formData.append('priority', editForm.priority);
       if (editForm.attachments) formData.append('attachments', editForm.attachments);
       
-      const res = await fetch(`/api/complaints/${editingComplaint._id}`, {
+      const res = await apiFetch(`/api/complaints/${editingComplaint._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`
@@ -222,7 +223,7 @@ const Dashboard = () => {
       
       if (!token) throw new Error('You must be logged in to delete a complaint.');
       
-      const res = await fetch(`/api/complaints/${complaintId}`, {
+      const res = await apiFetch(`/api/complaints/${complaintId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -247,7 +248,7 @@ const Dashboard = () => {
     setVoteLoading(prev => ({ ...prev, [complaintId]: true }));
     try {
       if (!token) throw new Error('You must be logged in to vote.');
-      const res = await fetch('/api/votes', {
+      const res = await apiFetch('/api/votes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

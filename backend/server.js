@@ -21,7 +21,7 @@ app.use(helmet());
 
 app.use(cors({
   origin: ENV_VARS.NODE_ENV === 'production'
-    ? ['https://your-frontend-domain.com']
+    ? ['https://admin-wl5q.onrender.com',]
     : ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
@@ -42,6 +42,10 @@ app.use('/uploads', (req, res, next) => {
 }, express.static('uploads'));
 
 
+
+app.use('/',(req,res)=>{
+  res.send('Backend is running')
+})
 
 // API Routes
 app.use('/api/auth', authRoutes);

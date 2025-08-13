@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { apiFetch } from '../utils/api.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginSuccess } from '../features/auth/authSlice';
 import Toast from '../components/Toast';
@@ -70,7 +71,7 @@ export default function RegisterPage() {
     setToast(null);
     try {
       // Make API call to backend
-      const res = await fetch('/api/auth/register', {
+      const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)

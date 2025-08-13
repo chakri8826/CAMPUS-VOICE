@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { apiFetch } from '../utils/api.js';
 import { useSelector } from 'react-redux';
 import Modal from '../components/Modal';
 import Navbar from '../components/Navbar';
@@ -18,7 +19,7 @@ export default function ComplaintDetailPage() {
   const fetchComplaint = async () => {
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch(`/api/complaints/${id}`, { headers });
+      const res = await apiFetch(`/api/complaints/${id}`, { headers });
       const data = await res.json();
       if (res.ok) {
         setComplaint(data.data);

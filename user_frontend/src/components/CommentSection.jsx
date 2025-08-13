@@ -48,7 +48,7 @@ const CommentItem = React.memo(({
     setSubmitting(true);
     try {
       if (!token) throw new Error('You must be logged in to reply.');
-      const res = await fetch(`/api/complaints/${complaintId}/comments`, {
+      const res = await apiFetch(`/api/complaints/${complaintId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -294,7 +294,7 @@ const CommentSection = ({ complaintId }) => {
     setToast(null);
     const fetchComments = async () => {
       try {
-        const res = await fetch(`/api/complaints/${complaintId}/comments`);
+        const res = await apiFetch(`/api/complaints/${complaintId}/comments`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to fetch comments');
         setComments(data.data || []);
@@ -327,7 +327,7 @@ const CommentSection = ({ complaintId }) => {
     setToast(null);
     try {
       if (!token) throw new Error('You must be logged in to comment.');
-      const res = await fetch(`/api/complaints/${complaintId}/comments`, {
+      const res = await apiFetch(`/api/complaints/${complaintId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -349,7 +349,7 @@ const CommentSection = ({ complaintId }) => {
     try {
       if (!token) throw new Error('You must be logged in to edit comments.');
       
-      const res = await fetch(`/api/complaints/${complaintId}/comments/${commentId}`, {
+      const res = await apiFetch(`/api/complaints/${complaintId}/comments/${commentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -392,7 +392,7 @@ const CommentSection = ({ complaintId }) => {
     try {
       if (!token) throw new Error('You must be logged in to delete comments.');
       
-      const res = await fetch(`/api/complaints/${complaintId}/comments/${commentId}`, {
+      const res = await apiFetch(`/api/complaints/${complaintId}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

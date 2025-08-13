@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { apiFetch } from '../utils/api.js';
 import Toast from '../components/Toast';
 import Navbar from '../components/Navbar';
 
@@ -37,7 +38,7 @@ export default function ComplaintSubmissionPage() {
       formData.append('category', form.category);
       formData.append('priority', form.priority);
       if (form.attachments) formData.append('attachments', form.attachments);
-      const res = await fetch('/api/complaints', {
+      const res = await apiFetch('/api/complaints', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`

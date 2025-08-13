@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { useSelector, useDispatch } from "react-redux";
 import Toast from "../components/Toast";
 import { getAvatarUrl } from "../utils/avatarUtils.js";
+import { apiFetch } from "../utils/api.js";
 import { updateAvatar } from "../features/auth/authSlice.js";
 
 const ProfilePage = () => {
@@ -41,7 +42,7 @@ const ProfilePage = () => {
         const userId = reduxUser.id || reduxUser._id;
         if (!userId) throw new Error("User ID not found.");
 
-        const res = await fetch(`/api/users/profile/${userId}`, {
+        const res = await apiFetch(`/api/users/profile/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const text = await res.text();
@@ -315,7 +316,7 @@ const ProfilePage = () => {
                               try {
                                 const formData = new FormData();
                                 formData.append("file", avatarFile);
-                                const res = await fetch("/api/users/avatar", {
+                                const res = await apiFetch("/api/users/avatar", {
                                   method: "PUT",
                                   headers: { Authorization: `Bearer ${token}` },
                                   body: formData,
@@ -444,7 +445,7 @@ const ProfilePage = () => {
                               ) {
                                 throw new Error("New passwords do not match.");
                               }
-                              const res = await fetch(
+                              const res = await apiFetch(
                                 "/api/auth/updatepassword",
                                 {
                                   method: "PUT",
@@ -556,7 +557,7 @@ const ProfilePage = () => {
                               if (editForm.department !== undefined)
                                 updateData.department = editForm.department;
 
-                              const res = await fetch(
+                              const res = await apiFetch(
                                 "/api/auth/updatedetails",
                                 {
                                   method: "PUT",
