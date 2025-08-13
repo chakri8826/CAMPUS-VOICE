@@ -20,9 +20,7 @@ connectDB();
 app.use(helmet());
 
 app.use(cors({
-  origin: ENV_VARS.NODE_ENV === 'production'
-    ? ['https://admin-wl5q.onrender.com','https://user-e1yv.onrender.com']
-    : ['http://localhost:5173', 'http://localhost:5174'],
+  origin: '*',
   credentials: true
 }));
 
