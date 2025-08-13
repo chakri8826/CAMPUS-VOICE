@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { apiFetch } from '../utils/api';
 import Modal from '../components/Modal';
 import AdminNavbar from '../components/AdminNavbar';
 import { useSelector } from 'react-redux';
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
   // Fetch dashboard stats
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/admin/dashboard', {
+      const res = await apiFetch('/api/admin/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -79,7 +80,7 @@ export default function AdminDashboard() {
         ...(search && { search })
       });
 
-      const res = await fetch(`/api/admin/complaints?${params}`, {
+      const res = await apiFetch(`/api/admin/complaints?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
   // Update complaint status
   const handleStatusUpdate = async (complaintId, newStatus) => {
     try {
-      const res = await fetch(`/api/admin/complaints/${complaintId}/status`, {
+    const res = await apiFetch(`/api/admin/complaints/${complaintId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +142,7 @@ export default function AdminDashboard() {
   // Add admin reply
   const handleReply = async () => {
     try {
-      const res = await fetch(`/api/admin/complaints/${modal.complaintId}/reply`, {
+    const res = await apiFetch(`/api/admin/complaints/${modal.complaintId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

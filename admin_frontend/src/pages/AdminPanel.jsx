@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../utils/api';
 import AdminNavbar from '../components/AdminNavbar';
 import { useSelector } from 'react-redux';
 
@@ -57,7 +58,7 @@ export default function AdminPanel() {
       
       // Use search endpoint if there's a search query, otherwise use regular users endpoint
       const endpoint = userFilters.search ? `/api/users/search?${params}` : `/api/users?${params}`;
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -89,8 +90,8 @@ export default function AdminPanel() {
     setUserActivityLoading(true);
     try {
       const [userRes, activityRes] = await Promise.all([
-        fetch(`/api/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`/api/users/${userId}/activity`, { headers: { 'Authorization': `Bearer ${token}` } })
+        apiFetch(`/api/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        apiFetch(`/api/users/${userId}/activity`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       const userData = await userRes.json();
       const activityData = await activityRes.json();
@@ -104,7 +105,7 @@ export default function AdminPanel() {
   const handleUserUpdate = async (userId, updates) => {
     setUserUpdateLoading(true);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const res = await apiFetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +132,7 @@ export default function AdminPanel() {
     if (!window.confirm('Are you sure you want to deactivate this user?')) return;
     setUserDeleteLoading(true);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const res = await apiFetch(`/api/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
