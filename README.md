@@ -23,10 +23,12 @@ Campus Voice is a full-stack MERN (MongoDB, Express, React, Node.js) application
 ## 🧰 Tech Stack
 
 - **Frontend:** React, Tailwind CSS / Bootstrap, Axios
+- **State Management:** Redux
 - **Backend:** Node.js, Express.js
 - **Database:** MongoDB (Mongoose)
 - **Authentication:** JWT (JSON Web Token)
 - **Deployment:** Render
+- **Additional:** Redux used for managing and tracking user state
 
 ---
 
@@ -58,4 +60,5 @@ Campus Voice is a full-stack MERN (MongoDB, Express, React, Node.js) application
   MONGO_URI=your_mongodb_connection_string
   JWT_SECRET=your_jwt_secret
   PORT=5000
+
 
