@@ -331,10 +331,9 @@ export default function AdminPanel() {
                     const department = e.target.department.value;
                     const role = e.target.role.value;
                     try {
-                      const token = localStorage.getItem('token');
-                      const res = await fetch('/api/auth/register', {
+                      const res = await apiFetch('/api/auth/register', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, email, password, department, role })
                       });
                       const data = await res.json();

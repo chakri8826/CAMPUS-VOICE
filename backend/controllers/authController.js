@@ -70,7 +70,7 @@ export async function updateDetails(req, res) {
       department: req.body.department,
       avatar: req.body.avatar
     };
-    
+
     Object.keys(fieldsToUpdate).forEach(key => fieldsToUpdate[key] === undefined && delete fieldsToUpdate[key]);
     const result = await updateDetailsService(req.user.id, fieldsToUpdate);
     console.log("result is in updateDetails Controller", result);
