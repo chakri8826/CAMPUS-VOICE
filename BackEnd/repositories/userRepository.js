@@ -52,7 +52,7 @@ export async function deleteUserById(id) {
 
 export async function searchUsersDB(filter) {
   return User.find(filter)
-    .select('name email avatardepartment role')
+    .select('name email avatar department role')
     .sort({ name: 1 });
 }
 
