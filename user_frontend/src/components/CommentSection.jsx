@@ -7,19 +7,12 @@ import { apiFetch } from '../utils/api.js';
 // CommentItem component moved outside to prevent re-creation on every render
 const CommentItem = React.memo(({ 
   comment, 
-  isReply = false, 
-  parentId = null, 
   onEdit, 
   onDelete, 
-  onReply, 
-  replyTo,
   complaintId,
   user,
   token
 }) => {
-  const [replyText, setReplyText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [showReplies, setShowReplies] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
   const [showMenu, setShowMenu] = useState(false);
@@ -33,41 +26,15 @@ const CommentItem = React.memo(({
 
   const handleEdit = useCallback(async () => {
     if (!editText.trim()) return;
-    await onEdit(comment._id, editText, isReply, parentId);
+    await onEdit(comment._id, editText);
     setIsEditing(false);
     setEditText(comment.content);
-  }, [editText, comment._id, isReply, parentId, onEdit, comment.content]);
+  }, [editText, comment._id, onEdit, comment.content]);
 
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
     setEditText(comment.content);
   }, [comment.content]);
-
-  const handleSubmitReply = async (e, parentId) => {
-    e.preventDefault();
-    if (!replyText.trim()) return;
-    setSubmitting(true);
-    try {
-      if (!token) throw new Error('You must be logged in to reply.');
-      const res = await apiFetch(`/api/complaints/${complaintId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ content: replyText, parentCommentId: parentId })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to add reply.');
-      
-      // Refresh comments after adding reply
-      window.location.reload();
-    } catch (error) {
-      console.error('Reply error:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const getTimeAgo = (date) => {
     const now = new Date();
@@ -100,7 +67,7 @@ const CommentItem = React.memo(({
   }, [showMenu]);
 
   return (
-    <div className={`${isReply ? 'ml-2 sm:ml-4 md:ml-8 border-l-2 border-[#214a3c] pl-2 sm:pl-3 md:pl-4' : ''} mb-4`}>
+    <div className="mb-4">
       <div className="bg-[#214a3c] rounded-lg p-3 sm:p-4">
         <div className="flex items-start gap-2 sm:gap-3">
           <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#019863] rounded-full flex items-center justify-center flex-shrink-0">
@@ -150,7 +117,7 @@ const CommentItem = React.memo(({
                       {canDelete && (
                         <button
                           onClick={() => {
-                            onDelete(comment._id, isReply, parentId);
+                            onDelete(comment._id);
                             setShowMenu(false);
                           }}
                           className="w-full px-2 sm:px-3 py-2 text-left text-red-400 hover:bg-[#18382c] hover:text-red-300 transition-colors flex items-center gap-2 rounded-b-lg text-sm"
@@ -197,86 +164,9 @@ const CommentItem = React.memo(({
             ) : (
               <p className="text-white text-sm mb-3 leading-relaxed">{comment.content}</p>
             )}
-            
-            <div className="flex items-center gap-4 mt-2">
-              {!isReply && (
-                <button
-                  onClick={() => onReply(comment._id)}
-                  className="text-[#8ecdb7] text-sm hover:text-white transition-colors"
-                >
-                  Reply
-                </button>
-              )}
-            </div>
-            
-            {/* Reply Form */}
-            {replyTo === comment._id && !isReply && (
-              <div className="ml-2 sm:ml-4 md:ml-8 mt-3 reply-form">
-                <form onSubmit={(e) => handleSubmitReply(e, comment._id)}>
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Write a reply..."
-                    className="w-full px-2 sm:px-3 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none text-sm sm:text-base"
-                    rows="3"
-                    required
-                  />
-                  <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="px-3 py-1.5 sm:py-1 bg-[#019863] text-white text-sm rounded hover:bg-[#017a4f] transition-colors disabled:opacity-50 w-full sm:w-auto"
-                    >
-                      {submitting ? 'Posting...' : 'Reply'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onReply(null);
-                        setReplyText('');
-                      }}
-                      className="px-3 py-1.5 sm:py-1 bg-[#214a3c] text-white text-sm rounded hover:bg-[#2a5a4a] transition-colors w-full sm:w-auto"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* Show Replies Button */}
-            {!isReply && comment.replies && comment.replies.length > 0 && (
-              <button
-                className="mt-2 text-[#8ecdb7] text-xs hover:text-white transition-colors underline"
-                onClick={() => setShowReplies((prev) => !prev)}
-              >
-                {showReplies ? `Hide Replies (${comment.replies.length})` : `Show Replies (${comment.replies.length})`}
-              </button>
-            )}
           </div>
         </div>
       </div>
-      
-      {/* Replies */}
-      {showReplies && comment.replies && comment.replies.length > 0 && (
-        <div className="mt-3">
-          {comment.replies.map(reply => (
-            <CommentItem 
-              key={reply._id} 
-              comment={reply} 
-              isReply={true} 
-              parentId={comment._id}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onReply={onReply}
-              replyTo={replyTo}
-              complaintId={complaintId}
-              user={user}
-              token={token}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 });
@@ -285,7 +175,6 @@ const CommentSection = ({ complaintId }) => {
   const { user, token } = useSelector(state => state.auth);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -346,7 +235,7 @@ const CommentSection = ({ complaintId }) => {
     }
   };
 
-  const handleEditComment = useCallback(async (commentId, newContent, isReply = false, parentId = null) => {
+  const handleEditComment = useCallback(async (commentId, newContent) => {
     try {
       if (!token) throw new Error('You must be logged in to edit comments.');
       
@@ -365,16 +254,7 @@ const CommentSection = ({ complaintId }) => {
       
       setComments(prev => 
         prev.map(comment => {
-          if (isReply && comment._id === parentId) {
-            return {
-              ...comment,
-              replies: comment.replies.map(reply => 
-                reply._id === commentId 
-                  ? { ...reply, content: newContent, isEdited: true, editedAt: new Date() }
-                  : reply
-              )
-            };
-          } else if (!isReply && comment._id === commentId) {
+          if (comment._id === commentId) {
             return { ...comment, content: newContent, isEdited: true, editedAt: new Date() };
           }
           return comment;
@@ -387,7 +267,7 @@ const CommentSection = ({ complaintId }) => {
     }
   }, [complaintId, token]);
 
-  const handleDeleteComment = useCallback(async (commentId, isReply = false, parentId = null) => {
+  const handleDeleteComment = useCallback(async (commentId) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
     setToast(null);
     try {
@@ -404,29 +284,12 @@ const CommentSection = ({ complaintId }) => {
       
       if (!res.ok) throw new Error(data.message || 'Failed to delete comment.');
       
-      setComments(prev => prev.filter(comment => {
-        if (isReply && comment._id === parentId) {
-          const updatedReplies = comment.replies.filter(reply => reply._id !== commentId);
-          if (updatedReplies.length === 0) {
-            return false;
-          } else {
-            comment.replies = updatedReplies;
-            return true;
-          }
-        } else if (!isReply && comment._id === commentId) {
-          return false;
-        }
-        return true;
-      }));
+      setComments(prev => prev.filter(comment => comment._id !== commentId));
       setToast({ type: 'success', message: 'Comment deleted successfully!' });
     } catch (error) {
       setToast({ type: 'error', message: error.message || 'Failed to delete comment. Please try again.' });
     }
   }, [complaintId, token]);
-
-  const handleReply = useCallback((commentId) => {
-    setReplyTo(commentId);
-  }, []);
 
   if (loading) {
     return (
@@ -439,7 +302,7 @@ const CommentSection = ({ complaintId }) => {
   return (
     <div className="space-y-4 sm:space-y-6 w-full">
       {/* Comment Form */}
-      <div className="bg-[#214a3c] rounded-lg p-3 sm:p-4 mb-4 reply-form">
+      <div className="bg-[#214a3c] rounded-lg p-3 sm:p-4 mb-4">
         <h3 className="text-white font-bold mb-3 sm:mb-4 text-lg sm:text-xl">Add a Comment</h3>
         <form onSubmit={handleSubmitComment} className="flex flex-col gap-3">
           <textarea
@@ -468,8 +331,6 @@ const CommentSection = ({ complaintId }) => {
             comment={comment}
             onEdit={handleEditComment}
             onDelete={handleDeleteComment}
-            onReply={handleReply}
-            replyTo={replyTo}
             complaintId={complaintId}
             user={user}
             token={token}

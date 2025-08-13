@@ -188,16 +188,28 @@ export default function MyComplaintsPage() {
                   <div className="mt-2 flex flex-wrap gap-2">
                     {c.attachments.map((file, idx) => {
                       const isImage = file.mimetype && file.mimetype.startsWith('image/');
-                      const backendUrl = 'http://localhost:5000';
-                      let fileUrl = file.path.replace(/^\./, '');
-                      if (!fileUrl.startsWith('/uploads')) {
-                        // If the path is not relative, try to extract uploads path
-                        const uploadsIndex = fileUrl.indexOf('uploads');
-                        if (uploadsIndex !== -1) {
-                          fileUrl = '/' + fileUrl.slice(uploadsIndex);
+                      
+                      // Handle both Cloudinary URLs and local file paths
+                      let fileUrl;
+                      if (file.url) {
+                        // Cloudinary URL (new structure)
+                        fileUrl = file.url;
+                      } else if (file.path) {
+                        // Local file path (old structure)
+                        // Use relative path for production - the backend will serve it
+                        let localPath = file.path.replace(/^\./, '');
+                        if (!localPath.startsWith('/uploads')) {
+                          // If the path is not relative, try to extract uploads path
+                          const uploadsIndex = localPath.indexOf('uploads');
+                          if (uploadsIndex !== -1) {
+                            localPath = '/' + localPath.slice(uploadsIndex);
+                          }
                         }
+                        fileUrl = localPath; // Use relative path, backend will serve it
+                      } else {
+                        // Skip files without valid URL or path
+                        return null;
                       }
-                      fileUrl = backendUrl + fileUrl;
                       return isImage ? (
                         <a
                           key={idx}
