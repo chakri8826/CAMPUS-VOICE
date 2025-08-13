@@ -16,10 +16,6 @@ export async function deleteComplaintById(id) {
   return Complaint.findByIdAndDelete(id);
 }
 
-export async function getFilteredComplaints(filter, page = 1, limit = 10) {
-  return Complaint.getFilteredComplaints(filter, page, limit);
+export async function getFilteredComplaints(filter) {
+  return Complaint.getFilteredComplaints(filter);
 }
-
-export async function countComplaints(filter) {
-  return Complaint.countDocuments(filter);
-} 

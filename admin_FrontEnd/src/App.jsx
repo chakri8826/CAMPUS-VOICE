@@ -1,18 +1,14 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPanel from './pages/AdminPanel';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 
 function AdminProtectedRoute({ children }) {
-  const token = localStorage.getItem('token');
-  const userStr = localStorage.getItem('user');
-  let isAdmin = false;
-  try {
-    const user = JSON.parse(userStr);
-    isAdmin = user && user.role === 'admin';
-  } catch {}
-  if (!token || !isAdmin) {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const isAdmin = isAuthenticated && user?.role === 'admin';
+  if (!isAdmin) {
     return <Navigate to="/login" replace />;
   }
   return children;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminNavbar from '../components/AdminNavbar';
+import { useSelector } from 'react-redux';
 
 const departmentOptions = [
   { label: 'All', value: 'All' },
@@ -15,7 +16,6 @@ const roleOptions = [
   { label: 'Student', value: 'student' },
   { label: 'Admin', value: 'admin' }
 ];
-const statusOptions = ['All', 'Active', 'Inactive'];
 
 const adminRoleOptions = [
   { label: 'Student', value: 'student' },
@@ -23,15 +23,10 @@ const adminRoleOptions = [
 ];
 
 export default function AdminPanel() {
-  const [health, setHealth] = useState(null);
-  const [logs, setLogs] = useState(null);
-  const [maintenanceResult, setMaintenanceResult] = useState(null);
-  const [loadingHealth, setLoadingHealth] = useState(false);
-  const [loadingLogs, setLoadingLogs] = useState(false);
-  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
+  const { token } = useSelector((state) => state.auth);
   const [users, setUsers] = useState([]);
   const [userPagination, setUserPagination] = useState({ current: 1, pages: 1, total: 0 });
-  const [userFilters, setUserFilters] = useState({ role: 'All', department: 'All', isActive: 'All' });
+  const [userFilters, setUserFilters] = useState({ role: 'All', department: 'All', search: '' });
   const [userLoading, setUserLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -45,89 +40,36 @@ export default function AdminPanel() {
   const [createAdminLoading, setCreateAdminLoading] = useState(false);
   const [createAdminError, setCreateAdminError] = useState(null);
   const [createAdminSuccess, setCreateAdminSuccess] = useState(null);
-  const [showHealthMsg, setShowHealthMsg] = useState(false);
 
-  const fetchHealth = async () => {
-    setLoadingHealth(true);
-    setHealth(null);
-    setShowHealthMsg(false);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/health', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setHealth(data.data || data);
-      setShowHealthMsg(true);
-      setTimeout(() => setShowHealthMsg(false), 3000);
-    } catch (error) {
-      setHealth({ error: 'Failed to fetch health info', success: false, message: 'Failed to fetch health info' });
-      setShowHealthMsg(true);
-      setTimeout(() => setShowHealthMsg(false), 3000);
-    } finally {
-      setLoadingHealth(false);
-    }
-  };
-
-  const fetchLogs = async () => {
-    setLoadingLogs(true);
-    setLogs(null);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/logs', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setLogs(data.data || data);
-    } catch (error) {
-      setLogs({ error: 'Failed to fetch logs' });
-    } finally {
-      setLoadingLogs(false);
-    }
-  };
-
-  const runMaintenance = async (action) => {
-    setLoadingMaintenance(true);
-    setMaintenanceResult(null);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/maintenance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action })
-      });
-      const data = await res.json();
-      setMaintenanceResult(data);
-    } catch (error) {
-      setMaintenanceResult({ error: 'Failed to run maintenance' });
-    } finally {
-      setLoadingMaintenance(false);
-    }
-  };
-
+ 
   // Fetch users
   const fetchUsers = async (page = 1) => {
     setUserLoading(true);
     setUserError(null);
     try {
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams({
         page,
         limit: 10,
         ...(userFilters.role !== 'All' && { role: userFilters.role }),
         ...(userFilters.department !== 'All' && { department: userFilters.department }),
-        ...(userFilters.isActive !== 'All' && { isActive: userFilters.isActive === 'Active' })
+        ...(userFilters.search && { q: userFilters.search })
       });
-      const res = await fetch(`/api/users?${params}`, {
+      
+      // Use search endpoint if there's a search query, otherwise use regular users endpoint
+      const endpoint = userFilters.search ? `/api/users/search?${params}` : `/api/users?${params}`;
+      const res = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (res.ok) {
         setUsers(data.data);
-        setUserPagination(data.pagination);
+        // Handle both paginated and non-paginated responses
+        if (data.pagination) {
+          setUserPagination(data.pagination);
+        } else {
+          // For search results, set pagination to show all results
+          setUserPagination({ current: 1, pages: 1, total: data.count });
+        }
       } else {
         setUserError(data.message || 'Failed to fetch users');
       }
@@ -146,7 +88,6 @@ export default function AdminPanel() {
     setUserActivity([]);
     setUserActivityLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const [userRes, activityRes] = await Promise.all([
         fetch(`/api/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`/api/users/${userId}/activity`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -163,7 +104,6 @@ export default function AdminPanel() {
   const handleUserUpdate = async (userId, updates) => {
     setUserUpdateLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: {
@@ -191,7 +131,6 @@ export default function AdminPanel() {
     if (!window.confirm('Are you sure you want to deactivate this user?')) return;
     setUserDeleteLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -211,7 +150,11 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 500); // Debounce search by 500ms
+
+    return () => clearTimeout(timer);
   }, [userFilters]);
 
   return (
@@ -224,78 +167,90 @@ export default function AdminPanel() {
 
       {/* Main Content */}
       <div className="layout-container flex h-full grow flex-col">
-        <div className="px-4 md:px-16 flex flex-1 justify-center py-8">
+        <div className="px-2 sm:px-4 md:px-16 flex flex-1 justify-center py-4 sm:py-6 md:py-8"> {/* Responsive padding */}
           <div className="layout-content-container flex flex-col w-full max-w-[1200px] flex-1">
-            <div className="flex flex-wrap justify-between gap-3 p-4">
-              <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">Admin Panel</p>
+            <div className="flex flex-wrap justify-between gap-3 p-2 sm:p-4"> {/* Responsive padding */}
+              <p className="text-white tracking-light text-xl sm:text-2xl md:text-[32px] font-bold leading-tight min-w-0 sm:min-w-72 break-words">Admin Panel</p> {/* Responsive text size and word break */}
             </div>
 
             {/* User Management Card */}
-            <div className="bg-[#214a3c] rounded-lg p-8 mb-8">
-              <h2 className="text-white text-2xl font-bold mb-6">User Management</h2>
-              <div className="flex flex-wrap gap-4 mb-4 items-center justify-between">
-                <div className="flex gap-4 flex-wrap items-end">
-                  <div className="flex flex-col">
-                    <label className="text-[#8ecdb7] text-xs font-semibold mb-1 ml-1">Role</label>
-                    <select value={userFilters.role} onChange={e => setUserFilters(f => ({ ...f, role: e.target.value }))} className="px-3 py-2 rounded bg-[#10231c] text-[#8ecdb7] border border-[#8ecdb7]">
+            <div className="bg-[#214a3c] rounded-lg p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 md:mb-8"> {/* Responsive padding and margin */}
+              <h2 className="text-white text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6">User Management</h2> {/* Responsive text size and margin */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 items-start sm:items-center justify-between"> {/* Responsive flex direction and gap */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-wrap items-start sm:items-end w-full sm:w-auto"> {/* Responsive flex direction and gap */}
+                  <div className="flex flex-col w-full sm:w-auto">
+                    <label className="text-[#8ecdb7] text-xs font-semibold mb-1 ml-1">Search</label> {/* Responsive text size */}
+                    <input 
+                      type="text" 
+                      placeholder="Search by name, email, or student ID..."
+                      value={userFilters.search} 
+                      onChange={e => setUserFilters(f => ({ ...f, search: e.target.value }))} 
+                      className="px-3 py-2 rounded bg-[#10231c] text-[#8ecdb7] border border-[#8ecdb7] text-sm sm:text-base placeholder-[#8ecdb7]/50"
+                    />
+                  </div>
+                  <div className="flex flex-col w-full sm:w-auto">
+                    <label className="text-[#8ecdb7] text-xs font-semibold mb-1 ml-1">Role</label> {/* Responsive text size */}
+                    <select value={userFilters.role} onChange={e => setUserFilters(f => ({ ...f, role: e.target.value }))} className="px-3 py-2 rounded bg-[#10231c] text-[#8ecdb7] border border-[#8ecdb7] text-sm sm:text-base"> {/* Responsive text size */}
                       {roleOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[#8ecdb7] text-xs font-semibold mb-1 ml-1">Department</label>
-                    <select value={userFilters.department} onChange={e => setUserFilters(f => ({ ...f, department: e.target.value }))} className="px-3 py-2 rounded bg-[#10231c] text-[#8ecdb7] border border-[#8ecdb7]">
+                  <div className="flex flex-col w-full sm:w-auto">
+                    <label className="text-[#8ecdb7] text-xs font-semibold mb-1 ml-1">Department</label> {/* Responsive text size */}
+                    <select value={userFilters.department} onChange={e => setUserFilters(f => ({ ...f, department: e.target.value }))} className="px-3 py-2 rounded bg-[#10231c] text-[#8ecdb7] border border-[#8ecdb7] text-sm sm:text-base"> {/* Responsive text size */}
                       {departmentOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                     </select>
                   </div>
-                  <div className="flex flex-col">
-                    <label className="text-[#8ecdb7] text-xs font-semibold mb-1 ml-1">Status</label>
-                    <select value={userFilters.isActive} onChange={e => setUserFilters(f => ({ ...f, isActive: e.target.value }))} className="px-3 py-2 rounded bg-[#10231c] text-[#8ecdb7] border border-[#8ecdb7]">
-                      {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
                 </div>
-                <button onClick={() => { setCreateAdminOpen(true); setCreateAdminError(null); setCreateAdminSuccess(null); }} className="px-4 py-2 bg-[#019863] text-white rounded hover:bg-[#017a4f] font-semibold whitespace-nowrap">Create New Admin</button>
+                <button onClick={() => { setCreateAdminOpen(true); setCreateAdminError(null); setCreateAdminSuccess(null); }} className="px-3 sm:px-4 py-2 bg-[#019863] text-white rounded hover:bg-[#017a4f] font-semibold whitespace-nowrap text-sm sm:text-base w-full sm:w-auto">Create New Admin</button> {/* Responsive padding, text size, and width */}
               </div>
               <div className="overflow-x-auto rounded">
-                <table className="min-w-full text-sm text-[#8ecdb7]">
+                <table className="min-w-full text-xs sm:text-sm text-[#8ecdb7] table-fixed"> {/* Responsive text size and fixed table layout */}
                   <thead>
                     <tr className="bg-[#18382c]">
-                      <th className="px-4 py-2">Name</th>
-                      <th className="px-4 py-2">Email</th>
-                      <th className="px-4 py-2">Role</th>
-                      <th className="px-4 py-2">Department</th>
-                      <th className="px-4 py-2">Status</th>
-                      <th className="px-4 py-2">Actions</th>
+                      <th className="px-2 sm:px-4 py-2 w-1/5">Name</th> {/* Responsive padding */}
+                      <th className="px-2 sm:px-4 py-2 w-1/5">Email</th> {/* Responsive padding */}
+                      <th className="px-2 sm:px-4 py-2 w-1/5">Role</th> {/* Responsive padding */}
+                      <th className="px-2 sm:px-4 py-2 w-1/5">Department</th> {/* Responsive padding */}
+                      <th className="px-2 sm:px-4 py-2 w-1/5">Actions</th> {/* Responsive padding */}
                     </tr>
                   </thead>
                   <tbody>
                     {userLoading ? (
-                      <tr><td colSpan={6} className="text-center py-4">Loading...</td></tr>
+                      <tr><td colSpan={5} className="text-center py-4">Loading...</td></tr>
                     ) : userError ? (
-                      <tr><td colSpan={6} className="text-center py-4 text-red-400">{userError}</td></tr>
+                      <tr><td colSpan={5} className="text-center py-4 text-red-400">{userError}</td></tr>
                     ) : users.length === 0 ? (
-                      <tr><td colSpan={6} className="text-center py-4">No users found.</td></tr>
+                      <tr><td colSpan={5} className="text-center py-4">No users found.</td></tr>
                     ) : users.map(user => (
                       <tr key={user._id} className="border-b border-[#18382c]">
-                        <td className="px-4 py-2">{user.name}</td>
-                        <td className="px-4 py-2">{user.email}</td>
-                        <td className="px-4 py-2">{user.role}</td>
-                        <td className="px-4 py-2">{user.department}</td>
-                        <td className="px-4 py-2">{user.isActive ? 'Active' : 'Inactive'}</td>
-                        <td className="px-4 py-2">
-                          <button onClick={() => fetchUserDetails(user._id)} className="px-2 py-1 bg-[#019863] text-white rounded hover:bg-[#017a4f] mr-2">View</button>
+                        <td className="px-2 sm:px-4 py-2 break-words w-1/5">{user.name || '-'}</td> {/* Responsive padding and word break */}
+                        <td className="px-2 sm:px-4 py-2 break-words w-1/5">{user.email || '-'}</td> {/* Responsive padding and word break */}
+                        <td className="px-2 sm:px-4 py-2 w-1/5">{user.role || '-'}</td> {/* Responsive padding */}
+                        <td className="px-2 sm:px-4 py-2 break-words w-1/5">{user.department || '-'}</td> {/* Responsive padding and word break */}
+                        <td className="px-2 sm:px-4 py-2 w-1/5">
+                          <button onClick={() => fetchUserDetails(user._id)} className="px-2 py-1 bg-[#019863] text-white rounded hover:bg-[#017a4f] mr-2 text-xs sm:text-sm">View</button> {/* Responsive text size */}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              {/* Pagination */}
-              <div className="flex justify-end gap-2 mt-4">
-                <button disabled={userPagination.current === 1} onClick={() => fetchUsers(userPagination.current - 1)} className="px-3 py-1 rounded bg-[#18382c] text-[#8ecdb7] disabled:opacity-50">Prev</button>
-                <span className="text-[#8ecdb7]">Page {userPagination.current} of {userPagination.pages}</span>
-                <button disabled={userPagination.current === userPagination.pages} onClick={() => fetchUsers(userPagination.current + 1)} className="px-3 py-1 rounded bg-[#18382c] text-[#8ecdb7] disabled:opacity-50">Next</button>
-              </div>
+              {/* Pagination - Only show when not searching */}
+              {!userFilters.search && userPagination.pages > 1 && (
+                <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4"> {/* Responsive flex direction */}
+                  <button disabled={userPagination.current === 1} onClick={() => fetchUsers(userPagination.current - 1)} className="px-3 py-1 rounded bg-[#18382c] text-[#8ecdb7] disabled:opacity-50 text-xs sm:text-sm">Prev</button> {/* Responsive text size */}
+                  <span className="text-[#8ecdb7] text-xs sm:text-sm text-center sm:text-left">Page {userPagination.current} of {userPagination.pages}</span> {/* Responsive text size and alignment */}
+                  <button disabled={userPagination.current === userPagination.pages} onClick={() => fetchUsers(userPagination.current + 1)} className="px-3 py-1 rounded bg-[#18382c] text-[#8ecdb7] disabled:opacity-50 text-xs sm:text-sm">Next</button> {/* Responsive text size */}
+                </div>
+              )}
+              {/* Search results info */}
+              {userFilters.search && (
+                <div className="flex justify-end mt-4">
+                  <span className="text-[#8ecdb7] text-xs sm:text-sm">
+                    Found {userPagination.total} result{userPagination.total !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* User Modal */}
@@ -308,7 +263,6 @@ export default function AdminPanel() {
                   <div className="mb-2"><span className="font-semibold text-[#8ecdb7]">Email:</span> {selectedUser.email}</div>
                   <div className="mb-2"><span className="font-semibold text-[#8ecdb7]">Role:</span> {selectedUser.role}</div>
                   <div className="mb-2"><span className="font-semibold text-[#8ecdb7]">Department:</span> {selectedUser.department}</div>
-                  <div className="mb-2"><span className="font-semibold text-[#8ecdb7]">Status:</span> {selectedUser.isActive ? 'Active' : 'Inactive'}</div>
                   <div className="mb-2"><span className="font-semibold text-[#8ecdb7]">Joined:</span> {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : '-'}</div>
                   <div className="flex gap-2 mt-4">
                     <button onClick={() => setUserEditMode(e => !e)} className="px-3 py-1 bg-[#019863] text-white rounded hover:bg-[#017a4f]">{userEditMode ? 'Cancel Edit' : 'Edit'}</button>
@@ -345,7 +299,13 @@ export default function AdminPanel() {
                     <h4 className="text-[#8ecdb7] font-semibold mb-2">User Activity</h4>
                     {userActivityLoading ? <div className="text-white">Loading...</div> : (
                       <ul className="list-disc pl-5 text-[#8ecdb7]">
-                        {userActivity.length === 0 ? <li>No activity found.</li> : userActivity.map((c, i) => <li key={i}>{c.title || c._id}</li>)}
+                        {userActivity.length === 0 ? <li>No activity found.</li> : userActivity.map((c, i) => (
+                          <li key={i} className="mb-1">
+                            <span className="font-medium">{c.title}</span>
+                            <span className="text-xs ml-2">({c.status.replace('_', ' ')})</span>
+                            <span className="text-xs ml-2">{new Date(c.createdAt).toLocaleDateString()}</span>
+                          </li>
+                        ))}
                       </ul>
                     )}
                   </div>
@@ -428,25 +388,6 @@ export default function AdminPanel() {
                 <p className="text-[#8ecdb7] text-lg mb-4">
                   Welcome to the Admin Panel. This is where you can manage various aspects of the CampusVoice system.
                 </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                  {/* System Health Section with badge outside the card */}
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="bg-[#10231c] rounded-lg p-6 border border-[#8ecdb7] col-span-1 flex-1 min-w-[350px] md:min-w-[400px]" style={{ width: '400px' }}>
-                      <h3 className="text-white text-lg font-semibold mb-3">System Health</h3>
-                      <p className="text-[#8ecdb7] text-sm mb-4">View current system health and resource usage.</p>
-                      <button onClick={fetchHealth} disabled={loadingHealth} className="px-4 py-2 bg-[#019863] text-white rounded hover:bg-[#017a4f] transition-colors mb-2">
-                        {loadingHealth ? 'Loading...' : 'Check Health'}
-                      </button>
-                    </div>
-                    {showHealthMsg && health && health.message && (
-                      <span className={`inline-block px-3 py-2 rounded text-base font-semibold ${health.success ? 'bg-green-700 text-green-200' : 'bg-red-700 text-red-200'}`}
-                        style={{ minWidth: '220px', textAlign: 'center' }}>
-                        {health.message}
-                      </span>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>

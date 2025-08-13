@@ -32,22 +32,3 @@ export async function getVoteCount(req, res) {
   }
 }
 
-// @desc    Get user's vote on a target
-// @route   GET /api/votes/user/:targetType/:targetId
-// @access  Private
-export async function getUserVote(req, res) {
-  try {
-    const { targetType, targetId } = req.params;
-    const result = await getUserVoteService({ userId: req.user.id, targetType, targetId });
-    if (result.error) {
-      return res.status(result.status || 400).json({ success: false, message: result.error });
-    }
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-}

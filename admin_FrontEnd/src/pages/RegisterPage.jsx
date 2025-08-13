@@ -35,23 +35,47 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#10231c]">
-      <form onSubmit={handleSubmit} className="bg-[#214a3c] p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-white mb-6">Admin Register</h2>
-        {error && <div className="text-red-400 mb-4">{error}</div>}
+    <div className="min-h-screen flex items-center justify-center bg-[#10231c] px-4 sm:px-6 py-4 sm:py-6"> {/* Responsive padding */}
+      <form onSubmit={handleSubmit} className="bg-[#214a3c] p-4 sm:p-6 md:p-8 rounded-lg shadow-lg w-full max-w-md space-y-4 sm:space-y-6"> {/* Responsive padding and spacing */}
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Admin Register</h2> {/* Responsive text size and margin */}
+        {error && <div className="text-red-400 mb-4 text-sm sm:text-base">{error}</div>} {/* Responsive text size */}
         <div className="mb-4">
-          <label className="block text-[#8ecdb7] mb-2">Name</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full px-3 py-2 rounded bg-[#10231c] text-white" />
+          <label className="block text-[#8ecdb7] mb-2 text-sm sm:text-base">Name</label> {/* Responsive text size */}
+          <input 
+            type="text" 
+            value={name} 
+            onChange={e => setName(e.target.value)} 
+            required 
+            className="w-full px-3 py-2 sm:py-3 rounded bg-[#10231c] text-white text-sm sm:text-base" 
+          /> {/* Responsive padding and text size */}
         </div>
         <div className="mb-4">
-          <label className="block text-[#8ecdb7] mb-2">Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-3 py-2 rounded bg-[#10231c] text-white" />
+          <label className="block text-[#8ecdb7] mb-2 text-sm sm:text-base">Email</label> {/* Responsive text size */}
+          <input 
+            type="email" 
+            value={email} 
+            onChange={e => setEmail(e.target.value)} 
+            required 
+            className="w-full px-3 py-2 sm:py-3 rounded bg-[#10231c] text-white text-sm sm:text-base" 
+          /> {/* Responsive padding and text size */}
         </div>
-        <div className="mb-6">
-          <label className="block text-[#8ecdb7] mb-2">Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-3 py-2 rounded bg-[#10231c] text-white" />
+        <div className="mb-4 sm:mb-6"> {/* Responsive margin */}
+          <label className="block text-[#8ecdb7] mb-2 text-sm sm:text-base">Password</label> {/* Responsive text size */}
+          <input 
+            type="password" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)} 
+            required 
+            className="w-full px-3 py-2 sm:py-3 rounded bg-[#10231c] text-white text-sm sm:text-base" 
+          /> {/* Responsive padding and text size */}
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-[#019863] text-white py-2 rounded font-semibold hover:bg-[#017a4f] transition">{loading ? 'Registering...' : 'Register'}</button>
+        <button 
+          type="submit" 
+          disabled={loading} 
+          className="w-full bg-[#019863] text-white py-2 sm:py-3 rounded font-semibold hover:bg-[#017a4f] transition text-sm sm:text-base" 
+        > {/* Responsive padding and text size */}
+          {loading ? 'Registering...' : 'Register'}
+        </button>
       </form>
     </div>
   );

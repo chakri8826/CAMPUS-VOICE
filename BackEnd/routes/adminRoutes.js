@@ -4,10 +4,7 @@ import {
   getAdminComplaints,
   updateComplaintStatus,
   addAdminReply,
-  getAdminDashboard,
-  getAdminHealth,
-  getAdminLogs,
-  postAdminMaintenance
+  getAdminDashboard
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -20,8 +17,5 @@ router.get('/complaints', getAdminComplaints);
 router.put('/complaints/:id/status', updateComplaintStatus);
 router.post('/complaints/:id/reply', addAdminReply);
 router.get('/dashboard', getAdminDashboard);
-router.get('/health', getAdminHealth);
-router.get('/logs', getAdminLogs);
-router.post('/maintenance', postAdminMaintenance);
 
-export default router; 
+export default router;

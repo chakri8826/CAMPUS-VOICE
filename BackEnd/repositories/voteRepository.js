@@ -19,4 +19,4 @@ export async function updateVote(vote, voteType) {
 
 export async function countVotes(targetType, targetId, voteType) {
   return Vote.countDocuments({ targetType, targetId, voteType });
-} 
+}

@@ -7,28 +7,29 @@ import {
   deleteUser,
   getUserActivity,
   searchUsers,
-  getUserBadges,
+
   updateAvatar
 } from '../controllers/userController.js';
 
 import { protect, authorize } from '../middleware/auth.js';
-import { uploadSingle } from '../middleware/upload.js';
+import { uploadAvatar } from '../middleware/upload.js';
 
 const router = express.Router();
 
-// Public routes
-router.get('/profile/:id', getUserProfile);
-router.get('/:id/badges', getUserBadges);
 
 // Protected routes
-router.get('/search', protect, searchUsers);
-router.put('/avatar', protect, uploadSingle, updateAvatar);
+router.get('/profile/:id', protect, getUserProfile);
+
+// Protected routes
+router.put('/avatar', protect, uploadAvatar, updateAvatar);
+
 
 // Admin only routes
+router.get('/search', protect, authorize('admin'), searchUsers);
 router.get('/', protect, authorize('admin'), getUsers);
 router.get('/:id', protect, authorize('admin'), getUser);
-router.get('/:id/activity', protect, getUserActivity);
+router.get('/:id/activity', protect, authorize('admin'), getUserActivity);
 router.put('/:id', protect, authorize('admin'), updateUser);
 router.delete('/:id', protect, authorize('admin'), deleteUser);
 
-export default router; 
+export default router;

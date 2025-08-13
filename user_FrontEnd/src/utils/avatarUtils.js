@@ -1,27 +1,13 @@
-// Utility function to normalize avatar paths
-export const normalizeAvatarPath = (avatarPath) => {
-  if (!avatarPath) return null;
-  return avatarPath.replace(/\\/g, '/');
-};
+export const getAvatarUrl = (avatar) => {
+    if (!avatar) return null;
 
-// Utility function to get full avatar URL
-export const getAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return null;
-  const normalizedPath = normalizeAvatarPath(avatarPath);
-  return `http://localhost:5000${normalizedPath}`;
-};
+    // If it's already a full URL (Cloudinary), use it directly
+    if (avatar.startsWith('http')) {
+        return avatar;
+    }
 
-// Utility function to normalize user object avatar
-export const normalizeUserAvatar = (user) => {
-  if (!user) return user;
-  if (user.avatar) {
-    user.avatar = normalizeAvatarPath(user.avatar);
-  }
-  return user;
+    // For local files, use relative URL (works in both dev and production)
+    // Remove any leading slashes and normalize path
+    const cleanPath = avatar.replace(/^[\/\\]+/, '').replace(/\\/g, '/');
+    return `/${cleanPath}`;
 };
-
-// Utility function to normalize array of users
-export const normalizeUsersAvatars = (users) => {
-  if (!Array.isArray(users)) return users;
-  return users.map(user => normalizeUserAvatar(user));
-}; 

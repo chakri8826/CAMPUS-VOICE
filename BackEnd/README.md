@@ -9,11 +9,11 @@ A comprehensive Node.js backend for the Smart Campus Feedback & Complaint Portal
 - **Comment System**: Nested comments with voting capabilities
 - **Voting System**: Upvote/downvote functionality for complaints and comments
 - **File Upload**: Multer-based file upload with support for images, documents, and videos
-- **Notification System**: Real-time notifications for user activities
+- **User Management**: Registration, authentication, and profile management
 - **Badge System**: Gamification with automatic badge assignment based on user activity
 - **Admin Dashboard**: Comprehensive admin panel with statistics and management tools
 - **Search & Filtering**: Advanced search and filtering capabilities
-- **Rate Limiting**: Built-in rate limiting for API protection
+
 - **Error Handling**: Centralized error handling with detailed logging
 
 ## Installation
@@ -33,8 +33,6 @@ A comprehensive Node.js backend for the Smart Campus Feedback & Complaint Portal
    JWT_EXPIRE=30d
    MAX_FILE_SIZE=5242880
    UPLOAD_PATH=./uploads
-   RATE_LIMIT_WINDOW_MS=900000
-   RATE_LIMIT_MAX_REQUESTS=100
    ```
 
 3. **Start the server**

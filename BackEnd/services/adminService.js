@@ -1,5 +1,5 @@
 import * as adminRepository from '../repositories/adminRepository.js';
-import { ENV_VARS } from '../config/envVars.js';
+import User from '../models/User.js';
 
 export async function getAdminComplaintsService({ page, limit, category, status, priority, search, sortBy, sortOrder }) {
   // Build filter object
@@ -40,6 +40,20 @@ export async function updateComplaintStatusService({ complaintId, status }) {
       status: 400
     };
   }
+
+  // Get the complaint first to check if status is changing to resolved
+  const existingComplaint = await adminRepository.findComplaintById(complaintId);
+  if (!existingComplaint) {
+    return {
+      success: false,
+      message: 'Complaint not found',
+      status: 404
+    };
+  }
+
+  const wasResolved = existingComplaint.status === 'resolved';
+  const willBeResolved = status === 'resolved';
+
   const complaint = await adminRepository.updateComplaintStatus(complaintId, status);
   if (!complaint) {
     return {
@@ -48,6 +62,16 @@ export async function updateComplaintStatusService({ complaintId, status }) {
       status: 404
     };
   }
+
+  // If status is changing to resolved, increment complaintsResolved for the user
+  if (!wasResolved && willBeResolved) {
+    await User.findByIdAndUpdate(complaint.submittedBy, { $inc: { complaintsResolved: 1 } });
+  }
+  // If status is changing from resolved to something else, decrement complaintsResolved
+  else if (wasResolved && !willBeResolved) {
+    await User.findByIdAndUpdate(complaint.submittedBy, { $inc: { complaintsResolved: -1 } });
+  }
+
   return {
     success: true,
     message: 'Complaint status updated successfully',
@@ -83,25 +107,3 @@ export async function getAdminDashboardService() {
   return await adminRepository.getAdminDashboard();
 }
 
-export async function getAdminHealthService() {
-  // Simple health check response, matching /api/health
-  return {
-    success: true,
-    message: 'Campus Voice API is running',
-    timestamp: new Date().toISOString(),
-    environment: ENV_VARS.NODE_ENV
-  };
-}
-
-export async function getAdminLogsService() {
-  // Placeholder for logs
-  return {
-    success: true,
-    message: 'Logs endpoint - implement logging service integration',
-    data: []
-  };
-}
-
-export async function postAdminMaintenanceService(action) {
-  return await adminRepository.handleAdminMaintenance(action);
-} 

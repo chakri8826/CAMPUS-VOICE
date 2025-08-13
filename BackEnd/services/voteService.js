@@ -1,12 +1,11 @@
 import * as voteRepository from '../repositories/voteRepository.js';
 import Complaint from '../models/Complaint.js';
-import Comment from '../models/Comment.js';
 
 export async function voteService({ userId, targetType, targetId, voteType }) {
-  if (!['complaint', 'comment'].includes(targetType) || !['like', 'dislike'].includes(voteType)) {
+  if (targetType !== 'complaint' || !['like', 'dislike'].includes(voteType)) {
     return { error: 'Invalid input', status: 400 };
   }
-  const Model = targetType === 'complaint' ? Complaint : Comment;
+
   const existing = await voteRepository.findVote(userId, targetType, targetId);
   let action;
   if (existing) {
@@ -21,21 +20,22 @@ export async function voteService({ userId, targetType, targetId, voteType }) {
     await voteRepository.createVote(userId, targetType, targetId, voteType);
     action = 'added';
   }
-  // Recalculate and update counts
+
+  // Update and return counts for complaints
   const likes = await voteRepository.countVotes(targetType, targetId, 'like');
   const dislikes = await voteRepository.countVotes(targetType, targetId, 'dislike');
-  await Model.findByIdAndUpdate(targetId, { likes, dislikes });
+  await Complaint.findByIdAndUpdate(targetId, { likes, dislikes });
   return { action, likes, dislikes };
 }
 
 export async function getVoteCountService({ targetType, targetId }) {
-  if (!['complaint', 'comment'].includes(targetType)) {
+  if (targetType !== 'complaint') {
     return { error: 'Invalid input', status: 400 };
   }
-  const Model = targetType === 'complaint' ? Complaint : Comment;
-  const doc = await Model.findById(targetId).select('likes dislikes');
+
+  const doc = await Complaint.findById(targetId).select('likes dislikes');
   if (!doc) {
     return { error: 'Target not found', status: 404 };
   }
   return { likes: doc.likes, dislikes: doc.dislikes };
-} 
+}

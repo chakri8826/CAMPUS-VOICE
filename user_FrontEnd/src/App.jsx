@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route,Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import Dashboard from './pages/Dashboard';
 import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
@@ -8,18 +9,14 @@ import ComplaintSubmissionPage from './pages/ComplaintSubmissionPage';
 import MyComplaintsPage from './pages/MyComplaintsPage';
 import ComplaintDetailPage from './pages/ComplaintDetailPage';
 
-// Protected Route Component
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('token');
-  const user = localStorage.getItem('user');
-  
-  if (!token || !user) {
+  const { isAuthenticated, user } = useSelector(state => state.auth);
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
-  
   return children;
 }
- 
+
 export default function App() {
   return (
     <Router>
@@ -59,4 +56,4 @@ export default function App() {
       </Routes>
     </Router>
   );
-} 
+}

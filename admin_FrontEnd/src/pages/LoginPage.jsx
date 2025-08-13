@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '../features/auth/authSlice';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -7,6 +9,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,8 +26,7 @@ export default function LoginPage() {
       const token = data.data?.token;
       if (!res.ok) throw new Error(data.message || 'Login failed');
       if (!user || user.role !== 'admin') throw new Error('Not an admin account');
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      dispatch(loginSuccess({ user, token }));
       navigate('/');
     } catch (err) {
       setError(err.message);
@@ -34,19 +36,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#10231c]">
-      <form onSubmit={handleSubmit} className="bg-[#214a3c] p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-white mb-6">Admin Login</h2>
-        {error && <div className="text-red-400 mb-4">{error}</div>}
+    <div className="min-h-screen flex items-center justify-center bg-[#10231c] px-4 sm:px-6 py-4 sm:py-6"> {/* Responsive padding */}
+      <form onSubmit={handleSubmit} className="bg-[#214a3c] p-4 sm:p-6 md:p-8 rounded-lg shadow-lg w-full max-w-md space-y-4 sm:space-y-6"> {/* Responsive padding and spacing */}
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Admin Login</h2> {/* Responsive text size and margin */}
+        {error && <div className="text-red-400 mb-4 text-sm sm:text-base">{error}</div>} {/* Responsive text size */}
         <div className="mb-4">
-          <label className="block text-[#8ecdb7] mb-2">Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-3 py-2 rounded bg-[#10231c] text-white" />
+          <label className="block text-[#8ecdb7] mb-2 text-sm sm:text-base">Email</label> {/* Responsive text size */}
+          <input 
+            type="email" 
+            value={email} 
+            onChange={e => setEmail(e.target.value)} 
+            required 
+            className="w-full px-3 py-2 sm:py-3 rounded bg-[#10231c] text-white text-sm sm:text-base" 
+          /> {/* Responsive padding and text size */}
         </div>
-        <div className="mb-6">
-          <label className="block text-[#8ecdb7] mb-2">Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full px-3 py-2 rounded bg-[#10231c] text-white" />
+        <div className="mb-4 sm:mb-6"> {/* Responsive margin */}
+          <label className="block text-[#8ecdb7] mb-2 text-sm sm:text-base">Password</label> {/* Responsive text size */}
+          <input 
+            type="password" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)} 
+            required 
+            className="w-full px-3 py-2 sm:py-3 rounded bg-[#10231c] text-white text-sm sm:text-base" 
+          /> {/* Responsive padding and text size */}
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-[#019863] text-white py-2 rounded font-semibold hover:bg-[#017a4f] transition">{loading ? 'Logging in...' : 'Login'}</button>
+        <button 
+          type="submit" 
+          disabled={loading} 
+          className="w-full bg-[#019863] text-white py-2 sm:py-3 rounded font-semibold hover:bg-[#017a4f] transition text-sm sm:text-base" 
+        > {/* Responsive padding and text size */}
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
     </div>
   );

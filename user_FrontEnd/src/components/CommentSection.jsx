@@ -1,28 +1,292 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import { FaEdit, FaTrash, FaEllipsisV } from 'react-icons/fa';
 import Toast from './Toast';
-import { FaRegThumbsUp, FaRegThumbsDown, FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
+
+// CommentItem component moved outside to prevent re-creation on every render
+const CommentItem = React.memo(({ 
+  comment, 
+  isReply = false, 
+  parentId = null, 
+  onEdit, 
+  onDelete, 
+  onReply, 
+  replyTo,
+  complaintId,
+  user,
+  token
+}) => {
+  const [replyText, setReplyText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  const isOwner = user && (user.id || user._id) && comment.author && 
+    (comment.author._id === (user.id || user._id) || comment.author.id === (user.id || user._id));
+  const isAdmin = user && user.role === 'admin';
+  const canEdit = (isOwner || isAdmin);
+  const canDelete = (isOwner || isAdmin);
+
+  const handleEdit = useCallback(async () => {
+    if (!editText.trim()) return;
+    await onEdit(comment._id, editText, isReply, parentId);
+    setIsEditing(false);
+    setEditText(comment.content);
+  }, [editText, comment._id, isReply, parentId, onEdit, comment.content]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditing(false);
+    setEditText(comment.content);
+  }, [comment.content]);
+
+  const handleSubmitReply = async (e, parentId) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+    setSubmitting(true);
+    try {
+      if (!token) throw new Error('You must be logged in to reply.');
+      const res = await fetch(`/api/complaints/${complaintId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ content: replyText, parentCommentId: parentId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to add reply.');
+      
+      // Refresh comments after adding reply
+      window.location.reload();
+    } catch (error) {
+      console.error('Reply error:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  };
+
+  // Handle click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMenu && menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
+  return (
+    <div className={`${isReply ? 'ml-2 sm:ml-4 md:ml-8 border-l-2 border-[#214a3c] pl-2 sm:pl-3 md:pl-4' : ''} mb-4`}>
+      <div className="bg-[#214a3c] rounded-lg p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#019863] rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs sm:text-sm font-bold">{comment.author.name.charAt(0)}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                <span className="text-white font-medium text-xs sm:text-sm">{comment.author.name}</span>
+                {comment.isOfficial && (
+                  <span className="bg-[#019863] text-white text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs">Official</span>
+                )}
+                <span className="text-[#8ecdb7] text-xs hidden sm:inline">{comment.author.department}</span>
+                <span className="text-[#8ecdb7] text-xs hidden sm:inline">•</span>
+                <span className="text-[#8ecdb7] text-xs">{getTimeAgo(comment.createdAt)}</span>
+                {comment.isEdited && (
+                  <span className="text-[#8ecdb7] text-xs">(edited)</span>
+                )}
+              </div>
+              
+              {/* Three dots menu for edit/delete */}
+              {(canEdit || canDelete) && (
+                <div className="relative self-end sm:self-auto" ref={menuRef}>
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="p-1.5 sm:p-1 text-[#8ecdb7] hover:text-white transition-colors rounded-full hover:bg-[#18382c]"
+                  >
+                    <FaEllipsisV className="text-sm sm:text-base" />
+                  </button>
+                  
+                  {/* Dropdown menu */}
+                  {showMenu && (
+                    <div className="absolute right-0 top-full mt-1 bg-[#18382c] border border-[#214a3c] rounded-lg shadow-lg z-10 min-w-[100px] sm:min-w-[120px]">
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setIsEditing(true);
+                            setEditText(comment.content);
+                            setShowMenu(false);
+                          }}
+                          className="w-full px-2 sm:px-3 py-2 text-left text-[#8ecdb7] hover:bg-[#214a3c] hover:text-white transition-colors flex items-center gap-2 rounded-t-lg text-sm"
+                        >
+                          <FaEdit className="text-sm" />
+                          Edit
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => {
+                            onDelete(comment._id, isReply, parentId);
+                            setShowMenu(false);
+                          }}
+                          className="w-full px-2 sm:px-3 py-2 text-left text-red-400 hover:bg-[#18382c] hover:text-red-300 transition-colors flex items-center gap-2 rounded-b-lg text-sm"
+                        >
+                          <FaTrash className="text-sm" />
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {isEditing ? (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                handleEdit();
+              }}>
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="w-full px-2 sm:px-3 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none text-sm sm:text-base"
+                  rows="3"
+                  required
+                  autoFocus
+                />
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 sm:py-1 bg-[#019863] text-white text-sm rounded hover:bg-[#017a4f] transition-colors w-full sm:w-auto"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-3 py-1.5 sm:py-1 bg-[#214a3c] text-white text-sm rounded hover:bg-[#2a5a4a] transition-colors w-full sm:w-auto"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="text-white text-sm mb-3 leading-relaxed">{comment.content}</p>
+            )}
+            
+            <div className="flex items-center gap-4 mt-2">
+              {!isReply && (
+                <button
+                  onClick={() => onReply(comment._id)}
+                  className="text-[#8ecdb7] text-sm hover:text-white transition-colors"
+                >
+                  Reply
+                </button>
+              )}
+            </div>
+            
+            {/* Reply Form */}
+            {replyTo === comment._id && !isReply && (
+              <div className="ml-2 sm:ml-4 md:ml-8 mt-3 reply-form">
+                <form onSubmit={(e) => handleSubmitReply(e, comment._id)}>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Write a reply..."
+                    className="w-full px-2 sm:px-3 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none text-sm sm:text-base"
+                    rows="3"
+                    required
+                  />
+                  <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-3 py-1.5 sm:py-1 bg-[#019863] text-white text-sm rounded hover:bg-[#017a4f] transition-colors disabled:opacity-50 w-full sm:w-auto"
+                    >
+                      {submitting ? 'Posting...' : 'Reply'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onReply(null);
+                        setReplyText('');
+                      }}
+                      className="px-3 py-1.5 sm:py-1 bg-[#214a3c] text-white text-sm rounded hover:bg-[#2a5a4a] transition-colors w-full sm:w-auto"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Show Replies Button */}
+            {!isReply && comment.replies && comment.replies.length > 0 && (
+              <button
+                className="mt-2 text-[#8ecdb7] text-xs hover:text-white transition-colors underline"
+                onClick={() => setShowReplies((prev) => !prev)}
+              >
+                {showReplies ? `Hide Replies (${comment.replies.length})` : `Show Replies (${comment.replies.length})`}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Replies */}
+      {showReplies && comment.replies && comment.replies.length > 0 && (
+        <div className="mt-3">
+          {comment.replies.map(reply => (
+            <CommentItem 
+              key={reply._id} 
+              comment={reply} 
+              isReply={true} 
+              parentId={comment._id}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onReply={onReply}
+              replyTo={replyTo}
+              complaintId={complaintId}
+              user={user}
+              token={token}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
 
 const CommentSection = ({ complaintId }) => {
+  const { user, token } = useSelector(state => state.auth);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState(null);
-  const [editingComment, setEditingComment] = useState(null);
-  const [editText, setEditText] = useState('');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-  const [userVotes, setUserVotes] = useState({});
-
-  const [currentUser, setCurrentUser] = useState(null);
-
-useEffect(() => {
-  try {
-    const storedUser = JSON.parse(localStorage.getItem('user'));
-    if (storedUser) setCurrentUser(storedUser);
-  } catch {
-    setCurrentUser(null);
-  }
-  
-}, []);
 
   // Fetch comments from backend
   useEffect(() => {
@@ -34,7 +298,6 @@ useEffect(() => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to fetch comments');
         setComments(data.data || []);
-        // Optionally, fetch user votes for each comment if available
       } catch (err) {
         setComments([]);
         setToast({ type: 'error', message: err.message || 'Failed to fetch comments.' });
@@ -44,12 +307,6 @@ useEffect(() => {
     };
     fetchComments();
   }, [complaintId]);
-
-  // Get current user from localStorage
-  // let currentUser = null;
-  // try {
-  //   currentUser = JSON.parse(localStorage.getItem('user'));
-  // } catch {}
 
   const getTimeAgo = (date) => {
     const now = new Date();
@@ -69,7 +326,6 @@ useEffect(() => {
     if (!newComment.trim()) return;
     setToast(null);
     try {
-      const token = localStorage.getItem('token');
       if (!token) throw new Error('You must be logged in to comment.');
       const res = await fetch(`/api/complaints/${complaintId}/comments`, {
         method: 'POST',
@@ -89,51 +345,22 @@ useEffect(() => {
     }
   };
 
-  const handleVote = async (commentId, voteType, isReply = false, parentId = null) => {
-    if (!commentId) {
-      setToast({ type: 'error', message: 'Invalid comment ID' });
-      return;
-    }
-    
-    setToast(null);
+  const handleEditComment = useCallback(async (commentId, newContent, isReply = false, parentId = null) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('You must be logged in to vote.');
-      const res = await fetch(`/api/complaints/${complaintId}/comments/${commentId}/vote`, {
-        method: 'POST',
+      if (!token) throw new Error('You must be logged in to edit comments.');
+      
+      const res = await fetch(`/api/complaints/${complaintId}/comments/${commentId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ voteType })
+        body: JSON.stringify({ content: newContent })
       });
+      
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to vote.');
-      setComments(prev => prev.map(comment => {
-        if (isReply && comment._id === parentId) {
-          return {
-            ...comment,
-            replies: comment.replies.map(reply =>
-              reply._id === commentId
-                ? { ...reply, upvotes: data.data.upvotes, downvotes: data.data.downvotes }
-                : reply
-            )
-          };
-        } else if (!isReply && comment._id === commentId) {
-          return { ...comment, upvotes: data.data.upvotes, downvotes: data.data.downvotes };
-        }
-        return comment;
-      }));
-      setUserVotes(prev => ({ ...prev, [commentId]: voteType }));
-    } catch (error) {
-      setToast({ type: 'error', message: error.message || 'Failed to vote. Please try again.' });
-    }
-  };
-
-  const handleEditComment = async (commentId, newContent, isReply = false, parentId = null) => {
-    try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (!res.ok) throw new Error(data.message || 'Failed to update comment.');
       
       setComments(prev => 
         prev.map(comment => {
@@ -153,260 +380,52 @@ useEffect(() => {
         })
       );
       
-      setEditingComment(null);
-      setEditText('');
       setToast({ type: 'success', message: 'Comment updated successfully!' });
     } catch (error) {
-      setToast({ type: 'error', message: 'Failed to update comment. Please try again.' });
+      setToast({ type: 'error', message: error.message || 'Failed to update comment. Please try again.' });
     }
-  };
+  }, [complaintId, token]);
 
-  const handleDeleteComment = async (commentId, isReply = false, parentId = null) => {
+  const handleDeleteComment = useCallback(async (commentId, isReply = false, parentId = null) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
     setToast(null);
     try {
-      const token = localStorage.getItem('token');
       if (!token) throw new Error('You must be logged in to delete comments.');
+      
       const res = await fetch(`/api/complaints/${complaintId}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
+      
       const data = await res.json();
+      
       if (!res.ok) throw new Error(data.message || 'Failed to delete comment.');
-      setComments(prev => prev.map(comment => {
+      
+      setComments(prev => prev.filter(comment => {
         if (isReply && comment._id === parentId) {
-          return {
-            ...comment,
-            replies: comment.replies.map(reply =>
-              reply._id === commentId
-                ? { ...reply, content: '[This comment has been deleted]', isDeleted: true }
-                : reply
-            )
-          };
+          const updatedReplies = comment.replies.filter(reply => reply._id !== commentId);
+          if (updatedReplies.length === 0) {
+            return false;
+          } else {
+            comment.replies = updatedReplies;
+            return true;
+          }
         } else if (!isReply && comment._id === commentId) {
-          return { ...comment, content: '[This comment has been deleted]', isDeleted: true };
+          return false;
         }
-        return comment;
+        return true;
       }));
       setToast({ type: 'success', message: 'Comment deleted successfully!' });
     } catch (error) {
       setToast({ type: 'error', message: error.message || 'Failed to delete comment. Please try again.' });
     }
-  };
+  }, [complaintId, token]);
 
-  const CommentItem = ({ comment, isReply = false, parentId = null }) => {
-    const [replyText, setReplyText] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [showReplies, setShowReplies] = useState(false);
-
-    const handleSubmitReply = async (e, parentId) => {
-      e.preventDefault();
-      if (!replyText.trim()) return;
-      setSubmitting(true);
-      setToast(null);
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('You must be logged in to reply.');
-        const res = await fetch(`/api/complaints/${complaintId}/comments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ content: replyText, parentCommentId: parentId })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to add reply.');
-        setComments(prev => prev.map(c =>
-          c._id === parentId
-            ? { ...c, replies: [...(c.replies || []), data.data] }
-            : c
-        ));
-        setReplyText('');
-        setReplyTo(null);
-        setToast({ type: 'success', message: 'Reply added successfully!' });
-        setShowReplies(true);
-      } catch (error) {
-        setToast({ type: 'error', message: error.message || 'Failed to add reply. Please try again.' });
-      } finally {
-        setSubmitting(false);
-      }
-    };
-
-    return (
-      <div className={`${isReply ? 'ml-8 border-l-2 border-[#214a3c] pl-4' : ''} mb-4`}>
-        <div className="bg-[#214a3c] rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-[#019863] rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm font-bold">{comment.author.name.charAt(0)}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-white font-medium text-sm">{comment.author.name}</span>
-                {comment.isOfficial && (
-                  <span className="bg-[#019863] text-white text-xs px-2 py-1 rounded">Official</span>
-                )}
-                <span className="text-[#8ecdb7] text-xs">{comment.author.department}</span>
-                <span className="text-[#8ecdb7] text-xs">•</span>
-                <span className="text-[#8ecdb7] text-xs">{getTimeAgo(comment.createdAt)}</span>
-                {comment.isEdited && (
-                  <span className="text-[#8ecdb7] text-xs">(edited)</span>
-                )}
-              </div>
-              
-              {editingComment === comment._id ? (
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleEditComment(comment._id, editText, isReply, parentId);
-                }}>
-                  <textarea
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none"
-                    rows="3"
-                    required
-                  />
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="submit"
-                      className="px-3 py-1 bg-[#019863] text-white text-sm rounded hover:bg-[#017a4f] transition-colors"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingComment(null);
-                        setEditText('');
-                      }}
-                      className="px-3 py-1 bg-[#214a3c] text-white text-sm rounded hover:bg-[#2a5a4a] transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <p className="text-white text-sm mb-3">{comment.content}</p>
-              )}
-              
-              <div className="flex items-center gap-4 mt-2">
-                <div className="flex items-center gap-2 bg-[#18382c] rounded-full px-3 py-1 shadow-sm">
-                  <button
-                    onClick={() => handleVote(comment._id, 'upvote', isReply, parentId)}
-                    className={`transition-colors text-lg flex items-center gap-1 px-2 py-1 rounded-full ${userVotes[comment._id] === 'upvote' && comment.upvotes > 0 ? 'text-green-500 bg-[#10231c] font-bold' : 'text-[#8ecdb7] hover:text-[#019863] hover:bg-[#214a3c]'}`}
-                    title="Like"
-                  >
-                    {userVotes[comment._id] === 'upvote' ? <FaThumbsUp className="text-base" /> : <FaRegThumbsUp className="text-base" />}
-                    <span className="ml-1 text-base">{comment.upvotes}</span>
-                  </button>
-                  <button
-                    onClick={() => handleVote(comment._id, 'downvote', isReply, parentId)}
-                    className={`transition-colors text-lg flex items-center gap-1 px-2 py-1 rounded-full ${userVotes[comment._id] === 'downvote' && comment.downvotes > 0  ? 'text-red-500 bg-[#10231c] font-bold' : 'text-[#8ecdb7] hover:text-[#dc3545] hover:bg-[#214a3c]'}`}
-                    title="Dislike"
-                  >
-                    {userVotes[comment._id] === 'downvote' ? <FaThumbsDown className="text-base" /> : <FaRegThumbsDown className="text-base" />}
-                    <span className="ml-1 text-base">{comment.downvotes}</span>
-                  </button>
-                </div>
-                
-                {!isReply && (
-                  <button
-                    onClick={() => setReplyTo(comment._id)}
-                    className="text-[#8ecdb7] text-sm hover:text-white transition-colors"
-                  >
-                    Reply
-                  </button>
-                )}
-                
-                {/* Edit button for author (example: admin id === '1') */}
-                {(() => {
-                  const authorId = comment.author._id || comment.author.id;
-                  return currentUser && (currentUser._id === authorId || currentUser.role === 'admin') && !editingComment && !comment.isDeleted;
-                })() && (
-                  <button
-                    onClick={() => {
-                      setEditingComment(comment._id);
-                      setEditText(comment.content);
-                    }}
-                    className="text-[#8ecdb7] text-sm hover:text-white transition-colors"
-                  >
-                    Edit
-                  </button>
-                )}
-                {/* Delete button for author or admin */}
-                {(() => {
-                  const authorId = comment.author._id || comment.author.id;
-                  return currentUser && (currentUser._id === authorId || currentUser.role === 'admin') && !comment.isDeleted;
-                })() && (
-                  <button
-                    onClick={() => handleDeleteComment(comment._id, isReply, parentId)}
-                    className="text-red-400 text-sm hover:text-white transition-colors ml-2"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              {/* Show Replies Button */}
-              {!isReply && comment.replies && comment.replies.length > 0 && (
-                <button
-                  className="mt-2 text-[#8ecdb7] text-xs hover:text-white transition-colors underline"
-                  onClick={() => setShowReplies((prev) => !prev)}
-                >
-                  {showReplies ? `Hide Replies (${comment.replies.length})` : `Show Replies (${comment.replies.length})`}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Reply Form */}
-        {replyTo === comment._id && !isReply && (
-          <div className="ml-8 mt-3">
-            <form onSubmit={(e) => handleSubmitReply(e, comment._id)}>
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Write a reply..."
-                className="w-full px-3 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none"
-                rows="3"
-                required
-              />
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-3 py-1 bg-[#019863] text-white text-sm rounded hover:bg-[#017a4f] transition-colors disabled:opacity-50"
-                >
-                  {submitting ? 'Posting...' : 'Reply'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReplyTo(null);
-                    setReplyText('');
-                  }}
-                  className="px-3 py-1 bg-[#214a3c] text-white text-sm rounded hover:bg-[#2a5a4a] transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-        
-        {/* Replies */}
-        {showReplies && comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3">
-            {comment.replies.map(reply => (
-              <CommentItem key={reply._id} comment={reply} isReply={true} parentId={comment._id} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  const handleReply = useCallback((commentId) => {
+    setReplyTo(commentId);
+  }, []);
 
   if (loading) {
     return (
@@ -417,34 +436,46 @@ useEffect(() => {
   }
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-4 sm:space-y-6 w-full">
       {/* Comment Form */}
-      <div className="bg-[#214a3c] rounded-lg p-4 mb-4">
-        <h3 className="text-white font-bold mb-4">Add a Comment</h3>
+      <div className="bg-[#214a3c] rounded-lg p-3 sm:p-4 mb-4 reply-form">
+        <h3 className="text-white font-bold mb-3 sm:mb-4 text-lg sm:text-xl">Add a Comment</h3>
         <form onSubmit={handleSubmitComment} className="flex flex-col gap-3">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Share your thoughts..."
-            className="w-full px-1 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none"
+            className="w-full px-2 sm:px-3 py-2 bg-[#10231c] border border-[#214a3c] rounded-lg text-white resize-none text-sm sm:text-base"
             rows="2"
             required
           />
           <button
             type="submit"
-            className="self-end px-5 py-2 bg-[#019863] text-white font-semibold rounded hover:bg-[#017a4f] transition-colors disabled:opacity-50"
+            className="self-end px-4 sm:px-5 py-2 bg-[#019863] text-white font-semibold rounded hover:bg-[#017a4f] transition-colors disabled:opacity-50 text-sm sm:text-base"
           >
             Post Comment
           </button>
         </form>
       </div>
+      
       {/* Comments List */}
-      <div className="space-y-4">
-        <h4 className="text-white font-bold mb-2">Comments ({comments.length})</h4>
+      <div className="space-y-3 sm:space-y-4">
+        <h4 className="text-white font-bold mb-2 text-base sm:text-lg">Comments ({comments.length})</h4>
         {comments.map(comment => (
-          <CommentItem key={comment._id} comment={comment} />
+          <CommentItem 
+            key={comment._id} 
+            comment={comment}
+            onEdit={handleEditComment}
+            onDelete={handleDeleteComment}
+            onReply={handleReply}
+            replyTo={replyTo}
+            complaintId={complaintId}
+            user={user}
+            token={token}
+          />
         ))}
       </div>
+      
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
     </div>
   );
