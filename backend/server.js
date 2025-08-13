@@ -49,17 +49,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 
 
-const adminDistPath = path.join(__dirname, '..', 'admin_frontend', 'dist');
-app.use('/admin', express.static(adminDistPath));
-app.get('/admin/*', (req, res) => {
-  res.sendFile(path.join(adminDistPath, 'index.html'));
-});
-
-const userDistPath = path.join(__dirname, '..', 'user_frontend', 'dist');
-app.use(express.static(userDistPath));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(userDistPath, 'index.html'));
-});
+ 
 
 
 app.use(errorHandler);
