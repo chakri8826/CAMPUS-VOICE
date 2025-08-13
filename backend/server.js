@@ -41,10 +41,6 @@ app.use('/uploads', (req, res, next) => {
 
 
 
-app.use('/',(req,res)=>{
-  res.send('Backend is running')
-})
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
