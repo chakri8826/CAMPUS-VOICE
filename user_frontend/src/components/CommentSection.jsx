@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { FaEdit, FaTrash, FaEllipsisV } from 'react-icons/fa';
 import Toast from './Toast';
+import { apiFetch } from '../utils/api.js';
 
 // CommentItem component moved outside to prevent re-creation on every render
 const CommentItem = React.memo(({ 
